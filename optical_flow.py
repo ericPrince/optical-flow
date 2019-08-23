@@ -125,7 +125,7 @@ def poly_exp_v2(f, c, sigma):
 poly_exp = poly_exp_v2
 
 
-def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=3, d=None):
+def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=3, d=None, model='constant'):
     A1, B1, C1 = poly_exp(f1, c1, sigma)
     A2, B2, C2 = poly_exp(f2, c2, sigma)
 
@@ -140,6 +140,36 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=3, d=None):
     n_flow = int(4*sigma_flow + 1)
     xw = np.arange(-n_flow, n_flow + 1)
     w = np.exp(-xw**2 / (2 * sigma_flow**2))
+
+    if model == 'constant':
+        S = np.eye(2)
+
+    elif model == 'projective':
+        # S: [h, w, 2, 8]
+        S = np.empty(list(x.shape) + [8])
+
+        S[..., 0, 0] = 1
+        S[..., 0, 1] = x[..., 0]
+        S[..., 0, 2] = x[..., 1]
+        S[..., 0, 3] = 0
+        S[..., 0, 4] = 0
+        S[..., 0, 5] = 0
+        S[..., 0, 6] = x[..., 0]**2
+        S[..., 0, 7] = x[..., 0]*x[..., 1]
+
+        S[..., 1, 0] = 0
+        S[..., 1, 1] = 0
+        S[..., 1, 2] = 0
+        S[..., 1, 3] = 1
+        S[..., 1, 4] = x[..., 0]
+        S[..., 1, 5] = x[..., 1]
+        S[..., 1, 6] = x[..., 0]*x[..., 1]
+        S[..., 1, 7] = x[..., 1]**2
+
+    else:
+        raise ValueError('Invalid parametrization model')
+
+    S_T = S.swapaxes(-1, -2)
 
     for _ in range(num_iter):
         d_ = d.astype(np.int)
@@ -162,8 +192,8 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=3, d=None):
         db *= c_[..., None]
 
         A_T = A.swapaxes(-1, -2)
-        ATA = A_T @ A
-        ATb = (A_T @ db[..., None])[..., 0]
+        ATA = S_T @ A_T @ A @ S
+        ATb = (S_T @ A_T @ db[..., None])[..., 0]
         # btb = db.swapaxes(-1, -2) @ db
 
         M = scipy.ndimage.correlate1d(ATA, w, axis=0, mode='constant', cval=0)
@@ -172,7 +202,7 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=3, d=None):
         y = scipy.ndimage.correlate1d(ATb, w, axis=0, mode='constant', cval=0)
         y = scipy.ndimage.correlate1d(y, w, axis=1, mode='constant', cval=0)
 
-        d = np.linalg.solve(M, y)
+        d = (S @ np.linalg.solve(M, y)[..., None])[..., 0]
 
     return d, x + d
 
@@ -204,6 +234,7 @@ def main():
         sigma=2.0,
         sigma_flow=1.5,
         num_iter=10,
+        model='constant',
     )
 
     for pyr1, pyr2, c1_, c2_ in reversed(list(zip(
