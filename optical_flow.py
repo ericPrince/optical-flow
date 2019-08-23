@@ -144,7 +144,7 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=3, d=None, model=
     if model == 'constant':
         S = np.eye(2)
 
-    elif model == 'projective':
+    elif model == 'eight_param':
         # S: [h, w, 2, 8]
         S = np.empty(list(x.shape) + [8])
 
