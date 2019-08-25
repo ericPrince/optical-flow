@@ -110,7 +110,7 @@ def poly_exp(f, c, sigma):
     return A, B, C
 
 
-def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, p=None, model='constant', mu=None):
+def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model='constant', mu=None):
     """
     Calculate optical flow described by Gunnar Farneback
 
@@ -147,6 +147,8 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, p=None
     x
         Pixel coordinate map between f1 and f2
     """
+
+    # TODO: add initial warp parameters as optional input?
 
     # Calculate the polynomial expansion at each point in the images
     A1, B1, C1 = poly_exp(f1, c1, sigma)
@@ -197,9 +199,6 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, p=None
 
     else:
         raise ValueError('Invalid parametrization model')
-
-    # if p is not None:
-    #     d = S @ p
 
     S_T = S.swapaxes(-1, -2)
 
@@ -299,14 +298,15 @@ def main():
 
     d = None
 
-    n_pyr = 5
+    n_pyr = 4
     opts = dict(
-        sigma=2.0,
-        sigma_flow=1.5,
-        num_iter=10,
+        sigma=4.0,
+        sigma_flow=4.0,
+        num_iter=3,
         # model='constant',
         model='eight_param',
         mu=None,
+        # mu=0,
     )
 
     for pyr1, pyr2, c1_, c2_ in reversed(list(zip(
@@ -356,9 +356,13 @@ def main():
     vmin, vmax = np.nanpercentile(f1 - f2, [2, 98])
 
     axes[0, 0].imshow(f1, cmap=cm.gray)
+    axes[0, 0].set_title('f1')
     axes[0, 1].imshow(f2, cmap=cm.gray)
+    axes[0, 1].set_title('f2')
     axes[1, 0].imshow(f1 - f2_w2, cmap=cm.gray, vmin=vmin, vmax=vmax)
+    axes[1, 0].set_title('difference: opencv implementation')
     axes[1, 1].imshow(f1 - f2_w, cmap=cm.gray, vmin=vmin, vmax=vmax)
+    axes[1, 1].set_title('difference: this implementation')
 
     plt.show()
 
