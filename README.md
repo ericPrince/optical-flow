@@ -34,3 +34,11 @@ parametrization, and the second uses a projective warp regularization.
 By switching between the options, you can see the differences in the
 quality of the warp at the edges and at certain interior points
 with local flow fields.
+
+### No Regularization
+
+![no regularization](images/yosemite-compare-noreg.png)
+
+### Projective Regularization
+
+![projective regularization](images/yosemite-compare-projective.png)
