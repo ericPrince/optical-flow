@@ -1,11 +1,12 @@
 # note: the conda environment defined in test-environment.yml contains all
 # dependencies needed to run this script
 
+import os
 from functools import partial
 
 import numpy as np
-from PIL import Image
 import skimage.transform
+import skimage.io
 import cv2
 import matplotlib.pyplot as plt
 
@@ -22,11 +23,17 @@ def main():
     # get images to calculate flow for
     # ---------------------------------------------------------------
 
-    fn1 = r"C:\Users\Prince\Documents\projects\spatial_domain_toolbox\yosemite_sequence\yos2.tif"
-    fn2 = r"C:\Users\Prince\Documents\projects\spatial_domain_toolbox\yosemite_sequence\yos4.tif"
+    yosemite = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        'data',
+        'yosemite_sequence',
+        'yos{}.tif'
+    )
+    fn1 = yosemite.format(2)
+    fn2 = yosemite.format(4)
 
-    f1 = np.array(Image.open(fn1), dtype=np.double)
-    f2 = np.array(Image.open(fn2), dtype=np.double)
+    f1 = skimage.io.imread(fn1).astype(np.double)
+    f2 = skimage.io.imread(fn2).astype(np.double)
 
     # certainties for images - certainty is decreased for pixels near the edge
     # of the image, as recommended by Farneback

@@ -4,7 +4,7 @@ name: optical-flow
 dependencies:
   - python>=3.6
   - numpy
+  - scikit-image
   - scipy
   - matplotlib
-  - pillow
   - opencv
