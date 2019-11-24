@@ -4,11 +4,16 @@ import scipy.ndimage
 
 def poly_exp(f, c, sigma):
     """
-    Calculate local polynomial expansion of a 2D signal, as described by Farneback
+    Calculates the local polynomial expansion of a 2D signal, as described by Farneback
 
     Uses separable normalized correlation
 
     $f ~ x^T A x + B^T x + C$
+
+    If f[i, j] and c[i, j] are the signal value and certainty of pixel (i, j) then
+    A[i, j] is a 2x2 array representing the quadratic term of the polynomial, B[i, j]
+    is a 2-element array representing the linear term, and C[i, j] is a scalar
+    representing the constant term.
 
     Parameters
     ----------
@@ -110,9 +115,11 @@ def poly_exp(f, c, sigma):
     return A, B, C
 
 
-def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model='constant', mu=None):
+def flow_iterative(
+    f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model='constant', mu=None
+):
     """
-    Calculate optical flow described by Gunnar Farneback
+    Calculates optical flow with an algorithm described by Gunnar Farneback
 
     Parameters
     ----------
@@ -129,7 +136,7 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model=
     sigma_flow
         Applicability window Gaussian kernel sigma for polynomial matching
     num_iter
-        Number of iterations to run
+        Number of iterations to run (defaults to 1)
     d: (optional)
         Initial displacement field
     p: (optional)
@@ -143,9 +150,7 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model=
     Returns
     -------
     d
-        Optical flow field
-    x
-        Pixel coordinate map between f1 and f2
+        Optical flow field. d[i, j] is the (y, x) displacement for pixel (i, j)
     """
 
     # TODO: add initial warp parameters as optional input?
@@ -273,99 +278,4 @@ def flow_iterative(f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model=
 
     # TODO: return global displacement parameters and/or global displacement if mu != 0
 
-    return d, x + d
-
-
-def main():
-    fn1 = r"C:\Users\Prince\Documents\projects\spatial_domain_toolbox\yosemite_sequence\yos2.tif"
-    fn2 = r"C:\Users\Prince\Documents\projects\spatial_domain_toolbox\yosemite_sequence\yos4.tif"
-
-    from PIL import Image
-    import skimage.transform
-
-    f1 = np.array(Image.open(fn1), dtype=np.double)
-    f2 = np.array(Image.open(fn2), dtype=np.double)
-
-    # c1 = np.ones_like(f1)
-    # c2 = np.ones_like(f2)
-
-    c1 = np.minimum(1, 1/5*np.minimum(np.arange(f1.shape[0])[:, None], np.arange(f1.shape[1])))
-    c1 = np.minimum(c1, 1/5*np.minimum(
-        f1.shape[0] - 1 - np.arange(f1.shape[0])[:, None],
-        f1.shape[1] - 1 - np.arange(f1.shape[1])
-    ))
-    c2 = c1
-
-    d = None
-
-    n_pyr = 4
-    opts = dict(
-        sigma=4.0,
-        sigma_flow=4.0,
-        num_iter=3,
-        # model='constant',
-        model='eight_param',
-        mu=None,
-        # mu=0,
-    )
-
-    for pyr1, pyr2, c1_, c2_ in reversed(list(zip(
-        skimage.transform.pyramid_gaussian(f1, n_pyr),
-        skimage.transform.pyramid_gaussian(f2, n_pyr),
-        skimage.transform.pyramid_gaussian(c1, n_pyr),
-        skimage.transform.pyramid_gaussian(c2, n_pyr),
-    ))):
-        if d is not None:
-            # TODO: account for shapes not quite matching
-            d = skimage.transform.pyramid_expand(d)
-            d = d[:pyr1.shape[0], :pyr2.shape[1]]
-
-        d, xw = flow_iterative(pyr1, pyr2, c1=c1_, c2=c2_, d=d, **opts)
-
-    import cv2
-
-    d2 = cv2.calcOpticalFlowFarneback(
-        f2.astype(np.uint8),
-        f1.astype(np.uint8),
-        None,
-        pyr_scale=0.5,
-        levels=6,
-        winsize=25,
-        iterations=10,
-        poly_n=25,
-        poly_sigma=3.0,
-        # flags=0
-        flags=cv2.OPTFLOW_FARNEBACK_GAUSSIAN
-    )
-    d2 = -d2[..., (1, 0)]
-
-    xw2 = d2 + np.stack(np.broadcast_arrays(
-        np.arange(f1.shape[0])[:, None],
-        np.arange(f1.shape[1])
-    ), axis=-1).astype(np.int)
-
-    f2_w2 = skimage.transform.warp(f2, np.moveaxis(xw2, -1, 0), cval=np.nan)
-
-    f2_w = skimage.transform.warp(f2, np.moveaxis(xw, -1, 0), cval=np.nan)
-
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-
-    fig, axes = plt.subplots(2, 2, sharex=True, sharey=True)
-
-    vmin, vmax = np.nanpercentile(f1 - f2, [2, 98])
-
-    axes[0, 0].imshow(f1, cmap=cm.gray)
-    axes[0, 0].set_title('f1')
-    axes[0, 1].imshow(f2, cmap=cm.gray)
-    axes[0, 1].set_title('f2')
-    axes[1, 0].imshow(f1 - f2_w2, cmap=cm.gray, vmin=vmin, vmax=vmax)
-    axes[1, 0].set_title('difference: opencv implementation')
-    axes[1, 1].imshow(f1 - f2_w, cmap=cm.gray, vmin=vmin, vmax=vmax)
-    axes[1, 1].set_title('difference: this implementation')
-
-    plt.show()
-
-
-if __name__ == '__main__':
-    main()
+    return d

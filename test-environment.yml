@@ -1,0 +1,10 @@
+# conda env create -f test-environment.yml -n optical-flow
+
+name: optical-flow
+dependencies:
+  - python>=3.6
+  - numpy
+  - scipy
+  - matplotlib
+  - pillow
+  - opencv
