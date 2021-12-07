@@ -99,7 +99,7 @@ def main():
     ):
         if d is not None:
             # TODO: account for shapes not quite matching
-            d = skimage.transform.pyramid_expand(d)
+            d = skimage.transform.pyramid_expand(d, multichannel=True)
             d = d[: pyr1.shape[0], : pyr2.shape[1]]
 
         d = flow_iterative(pyr1, pyr2, c1=c1_, c2=c2_, d=d, **opts)
