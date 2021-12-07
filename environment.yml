@@ -1,4 +1,4 @@
-# conda env create -f test-environment.yml -n optical-flow
+# conda env create -f environment.yml -n optical-flow
 
 name: optical-flow
 dependencies:

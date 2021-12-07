@@ -1,6 +1,11 @@
 import numpy as np
 import scipy.ndimage
 
+__all__ = ["__version__", "poly_exp", "flow_iterative"]
+
+
+__version__ = "1.0.0"
+
 
 def poly_exp(f, c, sigma):
     """
@@ -34,60 +39,66 @@ def poly_exp(f, c, sigma):
         Constant term of polynomial expansion
     """
     # Calculate applicability kernel (1D because it is separable)
-    n = int(4*sigma + 1)
+    n = int(4 * sigma + 1)
     x = np.arange(-n, n + 1, dtype=np.int)
-    a = np.exp(-x**2 / (2 * sigma**2))  # a: applicability kernel [n]
+    a = np.exp(-(x ** 2) / (2 * sigma ** 2))  # a: applicability kernel [n]
 
     # b: calculate b from the paper. Calculate separately for X and Y dimensions
     # [n, 6]
-    bx = np.stack([
-        np.ones(a.shape),
-        x,
-        np.ones(a.shape),
-        x**2,
-        np.ones(a.shape),
-        x
-    ], axis=-1)
-    by = np.stack([
-        np.ones(a.shape),
-        np.ones(a.shape),
-        x,
-        np.ones(a.shape),
-        x**2,
-        x,
-    ], axis=-1)
+    bx = np.stack(
+        [np.ones(a.shape), x, np.ones(a.shape), x ** 2, np.ones(a.shape), x], axis=-1
+    )
+    by = np.stack(
+        [
+            np.ones(a.shape),
+            np.ones(a.shape),
+            x,
+            np.ones(a.shape),
+            x ** 2,
+            x,
+        ],
+        axis=-1,
+    )
 
     # Pre-calculate product of certainty and signal
     cf = c * f
 
     # G and v are used to calculate "r" from the paper: v = G*r
     # r is the parametrization of the 2nd order polynomial for f
-    G = np.empty(list(f.shape) + [bx.shape[-1]]*2)
+    G = np.empty(list(f.shape) + [bx.shape[-1]] * 2)
     v = np.empty(list(f.shape) + [bx.shape[-1]])
 
     # Apply separable cross-correlations
 
     # Pre-calculate quantities recommended in paper
-    ab = np.einsum('i,ij->ij', a, bx)
-    abb = np.einsum('ij,ik->ijk', ab, bx)
+    ab = np.einsum("i,ij->ij", a, bx)
+    abb = np.einsum("ij,ik->ijk", ab, bx)
 
     # Calculate G and v for each pixel with cross-correlation
     for i in range(bx.shape[-1]):
         for j in range(bx.shape[-1]):
-            G[..., i, j] = scipy.ndimage.correlate1d(c, abb[..., i, j], axis=0, mode='constant', cval=0)
+            G[..., i, j] = scipy.ndimage.correlate1d(
+                c, abb[..., i, j], axis=0, mode="constant", cval=0
+            )
 
-        v[..., i] = scipy.ndimage.correlate1d(cf, ab[..., i], axis=0, mode='constant', cval=0)
+        v[..., i] = scipy.ndimage.correlate1d(
+            cf, ab[..., i], axis=0, mode="constant", cval=0
+        )
 
     # Pre-calculate quantities recommended in paper
-    ab = np.einsum('i,ij->ij', a, by)
-    abb = np.einsum('ij,ik->ijk', ab, by)
+    ab = np.einsum("i,ij->ij", a, by)
+    abb = np.einsum("ij,ik->ijk", ab, by)
 
     # Calculate G and v for each pixel with cross-correlation
     for i in range(bx.shape[-1]):
         for j in range(bx.shape[-1]):
-            G[..., i, j] = scipy.ndimage.correlate1d(G[..., i, j], abb[..., i, j], axis=1, mode='constant', cval=0)
+            G[..., i, j] = scipy.ndimage.correlate1d(
+                G[..., i, j], abb[..., i, j], axis=1, mode="constant", cval=0
+            )
 
-        v[..., i] = scipy.ndimage.correlate1d(v[..., i], ab[..., i], axis=1, mode='constant', cval=0)
+        v[..., i] = scipy.ndimage.correlate1d(
+            v[..., i], ab[..., i], axis=1, mode="constant", cval=0
+        )
 
     # Solve r for each pixel
     r = np.linalg.solve(G, v)
@@ -116,7 +127,7 @@ def poly_exp(f, c, sigma):
 
 
 def flow_iterative(
-    f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model='constant', mu=None
+    f1, f2, sigma, c1, c2, sigma_flow, num_iter=1, d=None, model="constant", mu=None
 ):
     """
     Calculates optical flow with an algorithm described by Gunnar Farneback
@@ -160,26 +171,26 @@ def flow_iterative(
     A2, B2, C2 = poly_exp(f2, c2, sigma)
 
     # Pixel coordinates of each point in the images
-    x = np.stack(np.broadcast_arrays(
-        np.arange(f1.shape[0])[:, None],
-        np.arange(f1.shape[1])
-    ), axis=-1).astype(np.int)
+    x = np.stack(
+        np.broadcast_arrays(np.arange(f1.shape[0])[:, None], np.arange(f1.shape[1])),
+        axis=-1,
+    ).astype(np.int)
 
     # Initialize displacement field
     if d is None:
         d = np.zeros(list(f1.shape) + [2])
 
     # Set up applicability convolution window
-    n_flow = int(4*sigma_flow + 1)
+    n_flow = int(4 * sigma_flow + 1)
     xw = np.arange(-n_flow, n_flow + 1)
-    w = np.exp(-xw**2 / (2 * sigma_flow**2))
+    w = np.exp(-(xw ** 2) / (2 * sigma_flow ** 2))
 
     # Evaluate warp parametrization model at pixel coordinates
-    if model == 'constant':
+    if model == "constant":
         S = np.eye(2)
 
-    elif model in ('affine', 'eight_param'):
-        S = np.empty(list(x.shape) + [6 if model == 'affine' else 8])
+    elif model in ("affine", "eight_param"):
+        S = np.empty(list(x.shape) + [6 if model == "affine" else 8])
 
         S[..., 0, 0] = 1
         S[..., 0, 1] = x[..., 0]
@@ -195,7 +206,7 @@ def flow_iterative(
         S[..., 1, 4] = x[..., 0]
         S[..., 1, 5] = x[..., 1]
 
-        if model == 'eight_param':
+        if model == "eight_param":
             S[..., 0, 6] = x[..., 0] ** 2
             S[..., 0, 7] = x[..., 0] * x[..., 1]
 
@@ -203,7 +214,7 @@ def flow_iterative(
             S[..., 1, 7] = x[..., 1] ** 2
 
     else:
-        raise ValueError('Invalid parametrization model')
+        raise ValueError("Invalid parametrization model")
 
     S_T = S.swapaxes(-1, -2)
 
@@ -229,10 +240,14 @@ def flow_iterative(
 
         # Calculate A and delB for each point, according to paper
         A = (A1 + A2[x_[..., 0], x_[..., 1]]) / 2
-        A *= c_[..., None, None]  # recommendation in paper: add in certainty by applying to A and delB
+        A *= c_[
+            ..., None, None
+        ]  # recommendation in paper: add in certainty by applying to A and delB
 
-        delB = -1/2 * (B2[x_[..., 0], x_[..., 1]] - B1) + (A @ d_[..., None])[..., 0]
-        delB *= c_[..., None]  # recommendation in paper: add in certainty by applying to A and delB
+        delB = -1 / 2 * (B2[x_[..., 0], x_[..., 1]] - B1) + (A @ d_[..., None])[..., 0]
+        delB *= c_[
+            ..., None
+        ]  # recommendation in paper: add in certainty by applying to A and delB
 
         # Pre-calculate quantities recommended by paper
         A_T = A.swapaxes(-1, -2)
@@ -245,11 +260,11 @@ def flow_iterative(
         if mu == 0:
             # Apply separable cross-correlation to calculate linear equation
             # for each pixel: G*d = h
-            G = scipy.ndimage.correlate1d(ATA, w, axis=0, mode='constant', cval=0)
-            G = scipy.ndimage.correlate1d(G, w, axis=1, mode='constant', cval=0)
+            G = scipy.ndimage.correlate1d(ATA, w, axis=0, mode="constant", cval=0)
+            G = scipy.ndimage.correlate1d(G, w, axis=1, mode="constant", cval=0)
 
-            h = scipy.ndimage.correlate1d(ATb, w, axis=0, mode='constant', cval=0)
-            h = scipy.ndimage.correlate1d(h, w, axis=1, mode='constant', cval=0)
+            h = scipy.ndimage.correlate1d(ATb, w, axis=0, mode="constant", cval=0)
+            h = scipy.ndimage.correlate1d(h, w, axis=1, mode="constant", cval=0)
 
             d = (S @ np.linalg.solve(G, h)[..., None])[..., 0]
 
@@ -264,17 +279,19 @@ def flow_iterative(
 
             # Default value for mu is to set mu to 1/2 the trace of G_avg
             if mu is None:
-                mu = 1/2 * np.trace(G_avg)
+                mu = 1 / 2 * np.trace(G_avg)
 
             # Apply separable cross-correlation to calculate linear equation
-            G = scipy.ndimage.correlate1d(A_T @ A, w, axis=0, mode='constant', cval=0)
-            G = scipy.ndimage.correlate1d(G, w, axis=1, mode='constant', cval=0)
+            G = scipy.ndimage.correlate1d(A_T @ A, w, axis=0, mode="constant", cval=0)
+            G = scipy.ndimage.correlate1d(G, w, axis=1, mode="constant", cval=0)
 
-            h = scipy.ndimage.correlate1d((A_T @ delB[..., None])[..., 0], w, axis=0, mode='constant', cval=0)
-            h = scipy.ndimage.correlate1d(h, w, axis=1, mode='constant', cval=0)
+            h = scipy.ndimage.correlate1d(
+                (A_T @ delB[..., None])[..., 0], w, axis=0, mode="constant", cval=0
+            )
+            h = scipy.ndimage.correlate1d(h, w, axis=1, mode="constant", cval=0)
 
             # Refine estimate of displacement field
-            d = np.linalg.solve(G + mu*np.eye(2), h + mu*d_avg)
+            d = np.linalg.solve(G + mu * np.eye(2), h + mu * d_avg)
 
     # TODO: return global displacement parameters and/or global displacement if mu != 0
 
