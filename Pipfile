@@ -12,11 +12,9 @@ scikit-image = "*"
 opencv-python-headless = "*"
 matplotlib = "*"
 pyqt6 = "*"  # for matplotlib backend
-
 # style checking
 black = "*"
 isort = "*"
-
 # packaging
 build = "*"
 twine = "*"
