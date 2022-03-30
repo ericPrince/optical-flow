@@ -15,10 +15,7 @@ pyqt6 = "*"  # for matplotlib backend
 # style checking
 black = "*"
 isort = "*"
+pre-commit = "*"
 # packaging
 build = "*"
 twine = "*"
-
-[pipenv]
-# needed for black
-allow_prereleases = true

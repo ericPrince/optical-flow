@@ -22,7 +22,10 @@ included script calculates the optical flow on frames from the
 environment for running this script, use pipenv or conda:
 
 ```bash
+# Run "pipenv lock --dev" or delete Pipfile.lock first if you 
+# want to solve your own environment
 pipenv install --dev
+pipenv run pre-commit install  # optionally install pre-commit hooks
 pipenv run python compare_to_opencv.py
 ```
 

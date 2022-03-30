@@ -41,12 +41,12 @@ def poly_exp(f, c, sigma):
     # Calculate applicability kernel (1D because it is separable)
     n = int(4 * sigma + 1)
     x = np.arange(-n, n + 1, dtype=np.int)
-    a = np.exp(-(x ** 2) / (2 * sigma ** 2))  # a: applicability kernel [n]
+    a = np.exp(-(x**2) / (2 * sigma**2))  # a: applicability kernel [n]
 
     # b: calculate b from the paper. Calculate separately for X and Y dimensions
     # [n, 6]
     bx = np.stack(
-        [np.ones(a.shape), x, np.ones(a.shape), x ** 2, np.ones(a.shape), x], axis=-1
+        [np.ones(a.shape), x, np.ones(a.shape), x**2, np.ones(a.shape), x], axis=-1
     )
     by = np.stack(
         [
@@ -54,7 +54,7 @@ def poly_exp(f, c, sigma):
             np.ones(a.shape),
             x,
             np.ones(a.shape),
-            x ** 2,
+            x**2,
             x,
         ],
         axis=-1,
@@ -183,7 +183,7 @@ def flow_iterative(
     # Set up applicability convolution window
     n_flow = int(4 * sigma_flow + 1)
     xw = np.arange(-n_flow, n_flow + 1)
-    w = np.exp(-(xw ** 2) / (2 * sigma_flow ** 2))
+    w = np.exp(-(xw**2) / (2 * sigma_flow**2))
 
     # Evaluate warp parametrization model at pixel coordinates
     if model == "constant":
