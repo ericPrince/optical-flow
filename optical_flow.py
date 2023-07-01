@@ -40,7 +40,7 @@ def poly_exp(f, c, sigma):
     """
     # Calculate applicability kernel (1D because it is separable)
     n = int(4 * sigma + 1)
-    x = np.arange(-n, n + 1, dtype=np.int)
+    x = np.arange(-n, n + 1, dtype=int)
     a = np.exp(-(x**2) / (2 * sigma**2))  # a: applicability kernel [n]
 
     # b: calculate b from the paper. Calculate separately for X and Y dimensions
@@ -174,7 +174,7 @@ def flow_iterative(
     x = np.stack(
         np.broadcast_arrays(np.arange(f1.shape[0])[:, None], np.arange(f1.shape[1])),
         axis=-1,
-    ).astype(np.int)
+    ).astype(int)
 
     # Initialize displacement field
     if d is None:
@@ -223,7 +223,7 @@ def flow_iterative(
         # Set d~ as displacement field fit to nearest pixel (and constrain to not
         # being off image). Note we are setting certainty to 0 for points that
         # would have been off-image had we not constrained them
-        d_ = d.astype(np.int)
+        d_ = d.astype(int)
         x_ = x + d_
 
         # x_ = np.maximum(np.minimum(x_, np.array(f1.shape) - 1), 0)

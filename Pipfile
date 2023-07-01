@@ -8,7 +8,7 @@ optical-flow = {editable = true, path = "."}
 
 [dev-packages]
 # run comparison (compare_to_opencv.py)
-scikit-image = "*"
+scikit-image = ">=0.19"
 opencv-python-headless = "*"
 matplotlib = "*"
 pyqt6 = "*"  # for matplotlib backend
@@ -16,6 +16,7 @@ pyqt6 = "*"  # for matplotlib backend
 black = "*"
 isort = "*"
 pre-commit = "*"
+ruff = "*"
 # packaging
 build = "*"
 twine = "*"
