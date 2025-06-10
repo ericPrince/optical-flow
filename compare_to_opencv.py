@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from functools import partial
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cv2
 import matplotlib.pyplot as plt
@@ -7,7 +10,10 @@ import numpy as np
 import skimage.io
 import skimage.transform
 
-from optical_flow import FLowIterativeOptions, flow_iterative
+from optical_flow import flow_iterative
+
+if TYPE_CHECKING:
+    from optical_flow import FlowIterativeOptions
 
 
 def main() -> None:
@@ -64,7 +70,7 @@ def main() -> None:
     # }
 
     # version using no regularization model
-    opts: FLowIterativeOptions = {
+    opts: FlowIterativeOptions = {
         "sigma_poly": 4.0,
         "sigma_flow": 4.0,
         "num_iter": 3,

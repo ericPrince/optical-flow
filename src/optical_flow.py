@@ -8,7 +8,7 @@ from scipy.ndimage import correlate1d
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-__all__ = ["FLowIterativeOptions", "__version__", "flow_iterative", "poly_exp"]
+__all__ = ["FlowIterativeOptions", "__version__", "flow_iterative", "poly_exp"]
 
 
 __version__ = "1.0.0"
@@ -329,7 +329,7 @@ def flow_iterative[DType: np.floating[Any]](  # noqa: PLR0913, PLR0915
     return d
 
 
-class FLowIterativeOptions(TypedDict, total=False):
+class FlowIterativeOptions(TypedDict, total=False):
     sigma_poly: float
     sigma_flow: float
     num_iter: int
