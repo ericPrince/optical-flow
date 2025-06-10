@@ -2,6 +2,37 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.isort]
-profile = "black"
-skip_gitignore = true
+[project]
+name = "optical-flow"
+description = "Pure python implementation of Gunnar Farneback's optical flow algorithm"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["numpy>=2", "scipy"]
+dynamic = ["version"]
+license = "MIT"
+classifiers = ["Private :: Do Not Upload"]
+urls = { "Homepage" = "https://github.com/ericPrince/optical-flow" }
+
+[tool.setuptools.dynamic]
+version = { attr = "optical_flow.__version__" }
+
+[dependency-groups]
+dev = [
+    "jupyter",
+    "matplotlib",
+    "mypy",
+    "opencv-python-headless",
+    "pyqt6",
+    "ruff",
+    "scikit-image>=0.19",
+    "scipy-stubs>=1.15.3.0",
+]
+
+[tool.mypy]
+files = ["."]
+strict = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D", "COM", "ERA", "N806", "TD", "FIX"]
+extend-safe-fixes = ["TC", "RUF005", "EM", "C408"]

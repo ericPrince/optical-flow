@@ -19,21 +19,11 @@ to model local optical flow in the images.
 OpenCV implements a similar algorithm described by Farneback. The
 included script calculates the optical flow on frames from the
 "Yosemite" sequence using opencv and this algorithm. To install an
-environment for running this script, use pipenv or conda:
+environment for running this script, use uv:
 
 ```bash
-# Run "pipenv lock --dev" or delete Pipfile.lock first if you 
-# want to solve your own environment
-pipenv install --dev
-pipenv run pre-commit install  # optionally install pre-commit hooks
-pipenv run python compare_to_opencv.py
-```
-
-```bash
-conda env create
-conda activate optical-flow
-
-python compare_to_opencv.py
+uv sync
+uv run python compare_to_opencv.py
 ```
 
 In the script, there are two different options for running the
