@@ -1,8 +1,5 @@
-# note: the environment defined in Pipfile or environment.yml contains all
-# dependencies needed to run this script
-
-import os
 from functools import partial
+from pathlib import Path
 
 import cv2
 import matplotlib.pyplot as plt
@@ -10,10 +7,10 @@ import numpy as np
 import skimage.io
 import skimage.transform
 
-from optical_flow import flow_iterative
+from optical_flow import FLowIterativeOptions, flow_iterative
 
 
-def main():
+def main() -> None:
     """
     Compares this implementation of Farneback's algorithms to OpenCV's implementation
     of a similar version of the algorithm
@@ -23,17 +20,13 @@ def main():
     # get images to calculate flow for
     # ---------------------------------------------------------------
 
-    yosemite = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "data",
-        "yosemite_sequence",
-        "yos{}.tif",
-    )
+    yosemite = str(Path(__file__).parent / "data" / "yosemite_sequence" / "yos{}.tif")
+
     fn1 = yosemite.format(2)
     fn2 = yosemite.format(4)
 
-    f1 = skimage.io.imread(fn1).astype(np.double)
-    f2 = skimage.io.imread(fn2).astype(np.double)
+    f1 = skimage.io.imread(fn1).astype(np.float64)
+    f2 = skimage.io.imread(fn2).astype(np.float64)
 
     # certainties for images - certainty is decreased for pixels near the edge
     # of the image, as recommended by Farneback
@@ -61,24 +54,23 @@ def main():
 
     n_pyr = 4
 
-    # # version using perspective warp regularization
-    # # to clean edges
-    # opts = dict(
-    #     sigma=4.0,
-    #     sigma_flow=4.0,
-    #     num_iter=3,
-    #     model="eight_param",
-    #     mu=None,
-    # )
+    # version using perspective warp regularization to clean edges
+    # opts: FLowIterativeOptions = {
+    #     "sigma_poly": 4.0,
+    #     "sigma_flow": 4.0,
+    #     "num_iter": 3,
+    #     "model": "eight_param",
+    #     "mu": None,
+    # }
 
     # version using no regularization model
-    opts = dict(
-        sigma=4.0,
-        sigma_flow=4.0,
-        num_iter=3,
-        model="constant",
-        mu=0,
-    )
+    opts: FLowIterativeOptions = {
+        "sigma_poly": 4.0,
+        "sigma_flow": 4.0,
+        "num_iter": 3,
+        "model": "constant",
+        "mu": 0,
+    }
 
     # optical flow field
     d = None
@@ -93,16 +85,21 @@ def main():
                         partial(skimage.transform.pyramid_gaussian, max_layer=n_pyr),
                         [f1, f2, c1, c2],
                     )
-                )
+                ),
+                strict=False,
             )
         )
     ):
         if d is not None:
             # TODO: account for shapes not quite matching
-            d = skimage.transform.pyramid_expand(d, channel_axis=-1)
+            d = skimage.transform.pyramid_expand(d, channel_axis=-1)  # type: ignore[no-untyped-call]
             d = d[: pyr1.shape[0], : pyr2.shape[1]] * 2
 
-        d = flow_iterative(pyr1, pyr2, c1=c1_, c2=c2_, d=d, **opts)
+        d = flow_iterative(pyr1, pyr2, c1=c1_, c2=c2_, d=d, **opts)  # type: ignore[misc]
+
+    if d is None:
+        msg = "No pyramids were used, no flow calculated."
+        raise RuntimeError(msg)
 
     xw = d + np.moveaxis(np.indices(f1.shape), 0, -1)
 
@@ -110,19 +107,22 @@ def main():
     # calculate optical flow with opencv
     # ---------------------------------------------------------------
 
-    opts_cv = dict(
-        pyr_scale=0.5,
-        levels=6,
-        winsize=25,
-        iterations=10,
-        poly_n=25,
-        poly_sigma=3.0,
+    opts_cv = {
+        "pyr_scale": 0.5,
+        "levels": 6,
+        "winsize": 25,
+        "iterations": 10,
+        "poly_n": 25,
+        "poly_sigma": 3.0,
         # flags=0
-        flags=cv2.OPTFLOW_FARNEBACK_GAUSSIAN,
-    )
+        "flags": cv2.OPTFLOW_FARNEBACK_GAUSSIAN,
+    }
 
     d2 = cv2.calcOpticalFlowFarneback(
-        f2.astype(np.uint8), f1.astype(np.uint8), None, **opts_cv
+        f2,
+        f1,
+        None,
+        **opts_cv,  # type: ignore[call-overload]
     )
     d2 = -d2[..., (1, 0)]
 
@@ -133,10 +133,10 @@ def main():
     # ---------------------------------------------------------------
 
     # opencv warped frame
-    f2_w2 = skimage.transform.warp(f2, np.moveaxis(xw2, -1, 0), cval=np.nan)
+    f2_w2 = skimage.transform.warp(f2, np.moveaxis(xw2, -1, 0), cval=np.nan)  # type: ignore[no-untyped-call]
 
     # warped frame
-    f2_w = skimage.transform.warp(f2, np.moveaxis(xw, -1, 0), cval=np.nan)
+    f2_w = skimage.transform.warp(f2, np.moveaxis(xw, -1, 0), cval=np.nan)  # type: ignore[no-untyped-call]
 
     # ---------------------------------------------------------------
     # visualize results
@@ -152,9 +152,11 @@ def main():
     axes[0, 0].set_title("f1 (fixed image)")
     axes[0, 1].imshow(f2, cmap=cmap)
     axes[0, 1].set_title("f2 (moving image)")
-    axes[1, 0].imshow(f1 - f2_w2, cmap=cmap, vmin=vmin, vmax=vmax)
+    im = axes[1, 0].imshow(f1 - f2_w2, cmap=cmap, vmin=vmin, vmax=vmax)
+    plt.colorbar(im, ax=axes[1, 0])
     axes[1, 0].set_title("difference f1 - f2 warped: opencv implementation")
-    axes[1, 1].imshow(f1 - f2_w, cmap=cmap, vmin=vmin, vmax=vmax)
+    im = axes[1, 1].imshow(f1 - f2_w, cmap=cmap, vmin=vmin, vmax=vmax)
+    plt.colorbar(im, ax=axes[1, 1])
     axes[1, 1].set_title("difference f1 - f2 warped: this implementation")
 
     plt.show()

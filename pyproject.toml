@@ -29,8 +29,10 @@ dev = [
 ]
 
 [tool.mypy]
+files = ["."]
 strict = true
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D"]
+ignore = ["D", "COM", "ERA", "N806", "TD", "FIX"]
+extend-safe-fixes = ["TC", "RUF005", "EM", "C408"]
